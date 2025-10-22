@@ -1,0 +1,508 @@
+import React, { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Home, 
+  Users, 
+  Droplets, 
+  Zap, 
+  MapPin,
+  TrendingUp,
+  CheckCircle,
+  Award,
+  Info
+} from "lucide-react";
+import { motion } from "framer-motion";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+const PROVIDER_TARIFFS = {
+  SAAE: 28.85,
+  CEMIG: 0.85
+};
+
+export default function Profile() {
+  const [activeTab, setActiveTab] = useState("residence");
+  const [showSuccess, setShowSuccess] = useState(false);
+  const queryClient = useQueryClient();
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['userProfiles'],
+    queryFn: () => base44.entities.UserProfile.list(),
+  });
+
+  const currentProfile = profiles[0] || {};
+  
+  const [profileData, setProfileData] = useState({
+    property_type: currentProfile.property_type || '',
+    household_size: currentProfile.household_size || '',
+    address_city: currentProfile.address_city || '',
+    address_state: currentProfile.address_state || '',
+    water_provider: currentProfile.water_provider || 'SAAE',
+    energy_provider: currentProfile.energy_provider || 'CEMIG',
+    avg_water_bill: currentProfile.avg_water_bill || '',
+    avg_energy_bill: currentProfile.avg_energy_bill || '',
+    avg_water_consumption_m3: currentProfile.avg_water_consumption_m3 || '',
+    avg_energy_consumption_kwh: currentProfile.avg_energy_consumption_kwh || '',
+    water_tariff_per_m3: currentProfile.water_tariff_per_m3 || PROVIDER_TARIFFS.SAAE,
+    energy_tariff_per_kwh: currentProfile.energy_tariff_per_kwh || PROVIDER_TARIFFS.CEMIG,
+    avg_shower_minutes: currentProfile.avg_shower_minutes || '',
+    washing_machine_uses_per_week: currentProfile.washing_machine_uses_per_week || '',
+    ac_hours_per_day: currentProfile.ac_hours_per_day || '',
+    lighting_type: currentProfile.lighting_type || ''
+  });
+
+  // Atualiza tarifas quando provedores mudam
+  useEffect(() => {
+    setProfileData(prev => ({
+      ...prev,
+      water_tariff_per_m3: PROVIDER_TARIFFS.SAAE,
+      energy_tariff_per_kwh: PROVIDER_TARIFFS.CEMIG
+    }));
+  }, [profileData.water_provider, profileData.energy_provider]);
+
+  // Carrega dados do perfil quando disponíveis
+  useEffect(() => {
+    if (currentProfile.id) {
+      setProfileData({
+        property_type: currentProfile.property_type || '',
+        household_size: currentProfile.household_size || '',
+        address_city: currentProfile.address_city || '',
+        address_state: currentProfile.address_state || '',
+        water_provider: currentProfile.water_provider || 'SAAE',
+        energy_provider: currentProfile.energy_provider || 'CEMIG',
+        avg_water_bill: currentProfile.avg_water_bill || '',
+        avg_energy_bill: currentProfile.avg_energy_bill || '',
+        avg_water_consumption_m3: currentProfile.avg_water_consumption_m3 || '',
+        avg_energy_consumption_kwh: currentProfile.avg_energy_consumption_kwh || '',
+        water_tariff_per_m3: currentProfile.water_tariff_per_m3 || PROVIDER_TARIFFS.SAAE,
+        energy_tariff_per_kwh: currentProfile.energy_tariff_per_kwh || PROVIDER_TARIFFS.CEMIG,
+        avg_shower_minutes: currentProfile.avg_shower_minutes || '',
+        washing_machine_uses_per_week: currentProfile.washing_machine_uses_per_week || '',
+        ac_hours_per_day: currentProfile.ac_hours_per_day || '',
+        lighting_type: currentProfile.lighting_type || ''
+      });
+    }
+  }, [currentProfile]);
+
+  // Calcula tarifa automática quando valores médios mudam
+  useEffect(() => {
+    if (profileData.avg_water_bill && profileData.avg_water_consumption_m3) {
+      const calculatedTariff = parseFloat(profileData.avg_water_bill) / parseFloat(profileData.avg_water_consumption_m3);
+      if (!isNaN(calculatedTariff) && calculatedTariff > 0) {
+        setProfileData(prev => ({
+          ...prev,
+          water_tariff_per_m3: calculatedTariff.toFixed(2)
+        }));
+      }
+    }
+  }, [profileData.avg_water_bill, profileData.avg_water_consumption_m3]);
+
+  useEffect(() => {
+    if (profileData.avg_energy_bill && profileData.avg_energy_consumption_kwh) {
+      const calculatedTariff = parseFloat(profileData.avg_energy_bill) / parseFloat(profileData.avg_energy_consumption_kwh);
+      if (!isNaN(calculatedTariff) && calculatedTariff > 0) {
+        setProfileData(prev => ({
+          ...prev,
+          energy_tariff_per_kwh: calculatedTariff.toFixed(2)
+        }));
+      }
+    }
+  }, [profileData.avg_energy_bill, profileData.avg_energy_consumption_kwh]);
+
+  const calculateCompletion = (data) => {
+    const fields = Object.keys(data).filter(k => k !== 'profile_completion' && k !== 'current_level' && k !== 'total_experience');
+    const filled = fields.filter(k => data[k] !== '' && data[k] !== null && data[k] !== undefined);
+    return Math.round((filled.length / fields.length) * 100);
+  };
+
+  const saveProfileMutation = useMutation({
+    mutationFn: (data) => {
+      const completion = calculateCompletion(data);
+      const dataToSave = {
+        ...data,
+        household_size: parseInt(data.household_size) || 0,
+        avg_water_bill: parseFloat(data.avg_water_bill) || 0,
+        avg_energy_bill: parseFloat(data.avg_energy_bill) || 0,
+        avg_water_consumption_m3: parseFloat(data.avg_water_consumption_m3) || 0,
+        avg_energy_consumption_kwh: parseFloat(data.avg_energy_consumption_kwh) || 0,
+        water_tariff_per_m3: parseFloat(data.water_tariff_per_m3) || PROVIDER_TARIFFS.SAAE,
+        energy_tariff_per_kwh: parseFloat(data.energy_tariff_per_kwh) || PROVIDER_TARIFFS.CEMIG,
+        avg_shower_minutes: parseInt(data.avg_shower_minutes) || 0,
+        washing_machine_uses_per_week: parseInt(data.washing_machine_uses_per_week) || 0,
+        ac_hours_per_day: parseFloat(data.ac_hours_per_day) || 0,
+        profile_completion: completion,
+        current_level: currentProfile.current_level || 1,
+        total_experience: currentProfile.total_experience || 0
+      };
+      
+      if (currentProfile.id) {
+        return base44.entities.UserProfile.update(currentProfile.id, dataToSave);
+      } else {
+        return base44.entities.UserProfile.create(dataToSave);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userProfiles'] });
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 4000);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+  });
+
+  const completion = calculateCompletion(profileData);
+
+  return (
+    <div className="p-4 md:p-8 bg-gradient-to-br from-blue-50 via-cyan-50/40 to-amber-50/30 min-h-screen">
+      <div className="max-w-5xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+            Meu Perfil
+          </h1>
+          <p className="text-gray-600">Configure suas informações para recomendações personalizadas</p>
+        </div>
+
+        {showSuccess && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="mb-6"
+          >
+            <Alert className="bg-green-50 border-green-200">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
+                Perfil salvo com sucesso! Suas configurações estão sendo usadas para personalizar todo o aplicativo. 🎉
+              </AlertDescription>
+            </Alert>
+          </motion.div>
+        )}
+
+        <div className="mb-6">
+          <Card className="border-none shadow-lg bg-gradient-to-r from-purple-50 to-pink-50">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Completude do Perfil</p>
+                  <p className="text-3xl font-bold text-purple-600">{completion}%</p>
+                </div>
+                <Award className={`w-12 h-12 ${completion === 100 ? 'text-amber-500 fill-amber-500' : 'text-gray-400'}`} />
+              </div>
+              <Progress value={completion} className="h-3" />
+              <p className="text-xs text-gray-600 mt-2">
+                {completion === 100 
+                  ? '🎉 Perfil completo! Você receberá as melhores recomendações.' 
+                  : 'Complete seu perfil para insights mais precisos'}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card className="border-none shadow-xl">
+          <CardHeader className="bg-gradient-to-r from-blue-500 via-cyan-500 to-purple-500 text-white">
+            <CardTitle className="text-2xl">Configurações Personalizadas</CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-4 mb-6">
+                <TabsTrigger value="residence" className="flex items-center gap-2">
+                  <Home className="w-4 h-4" />
+                  <span className="hidden md:inline">Residência</span>
+                </TabsTrigger>
+                <TabsTrigger value="providers" className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  <span className="hidden md:inline">Provedores</span>
+                </TabsTrigger>
+                <TabsTrigger value="averages" className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4" />
+                  <span className="hidden md:inline">Médias</span>
+                </TabsTrigger>
+                <TabsTrigger value="habits" className="flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  <span className="hidden md:inline">Hábitos</span>
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="residence" className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Tipo de Imóvel</Label>
+                    <Select
+                      value={profileData.property_type}
+                      onValueChange={(value) => setProfileData({...profileData, property_type: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="casa">Casa</SelectItem>
+                        <SelectItem value="apartamento">Apartamento</SelectItem>
+                        <SelectItem value="escritorio">Escritório</SelectItem>
+                        <SelectItem value="comercio">Comércio</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Número de Moradores/Ocupantes</Label>
+                    <Input
+                      type="number"
+                      placeholder="Ex: 4"
+                      value={profileData.household_size}
+                      onChange={(e) => setProfileData({...profileData, household_size: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label>Cidade</Label>
+                    <Input
+                      placeholder="Ex: São Paulo"
+                      value={profileData.address_city}
+                      onChange={(e) => setProfileData({...profileData, address_city: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label>Estado</Label>
+                    <Input
+                      placeholder="Ex: SP"
+                      value={profileData.address_state}
+                      onChange={(e) => setProfileData({...profileData, address_state: e.target.value})}
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="providers" className="space-y-4">
+                <Alert className="bg-blue-50 border-blue-200 mb-4">
+                  <Info className="h-4 w-4 text-blue-600" />
+                  <AlertDescription className="text-blue-800 text-sm">
+                    As tarifas dos provedores são automaticamente aplicadas aos cálculos do aplicativo.
+                  </AlertDescription>
+                </Alert>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="flex items-center gap-2 mb-2">
+                      <Droplets className="w-4 h-4 text-blue-600" />
+                      Concessionária de Água
+                    </Label>
+                    <Card className="border-2 border-blue-200 bg-blue-50">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-bold text-blue-900">SAAE</span>
+                          <CheckCircle className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <p className="text-sm text-gray-700">Serviço Autônomo de Água e Esgoto</p>
+                        <div className="mt-3 pt-3 border-t border-blue-200">
+                          <p className="text-xs text-gray-600">Tarifa padrão:</p>
+                          <p className="text-lg font-bold text-blue-700">R$ {PROVIDER_TARIFFS.SAAE.toFixed(2)}/m³</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                  
+                  <div>
+                    <Label className="flex items-center gap-2 mb-2">
+                      <Zap className="w-4 h-4 text-amber-600" />
+                      Concessionária de Energia
+                    </Label>
+                    <Card className="border-2 border-amber-200 bg-amber-50">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-bold text-amber-900">CEMIG</span>
+                          <CheckCircle className="w-5 h-5 text-amber-600" />
+                        </div>
+                        <p className="text-sm text-gray-700">Companhia Energética de Minas Gerais</p>
+                        <div className="mt-3 pt-3 border-t border-amber-200">
+                          <p className="text-xs text-gray-600">Tarifa padrão:</p>
+                          <p className="text-lg font-bold text-amber-700">R$ {PROVIDER_TARIFFS.CEMIG.toFixed(2)}/kWh</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="averages" className="space-y-4">
+                <Alert className="bg-purple-50 border-purple-200 mb-4">
+                  <Info className="h-4 w-4 text-purple-600" />
+                  <AlertDescription className="text-purple-800 text-sm">
+                    As tarifas são calculadas automaticamente com base nos valores que você informa.
+                  </AlertDescription>
+                </Alert>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-blue-50 p-4 rounded-xl">
+                    <h3 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                      <Droplets className="w-5 h-5" />
+                      Água
+                    </h3>
+                    <div className="space-y-3">
+                      <div>
+                        <Label>Valor Médio Mensal (R$)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="Ex: 95.50"
+                          value={profileData.avg_water_bill}
+                          onChange={(e) => setProfileData({...profileData, avg_water_bill: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <Label>Consumo Médio Mensal (m³)</Label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder="Ex: 15.5"
+                          value={profileData.avg_water_consumption_m3}
+                          onChange={(e) => setProfileData({...profileData, avg_water_consumption_m3: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <Label>Tarifa Calculada por m³ (R$)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={profileData.water_tariff_per_m3}
+                          readOnly
+                          className="bg-gray-100 cursor-not-allowed"
+                        />
+                        <p className="text-xs text-gray-600 mt-1">
+                          Baseada em SAAE: R$ {PROVIDER_TARIFFS.SAAE.toFixed(2)}/m³
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-amber-50 p-4 rounded-xl">
+                    <h3 className="font-semibold text-amber-900 mb-3 flex items-center gap-2">
+                      <Zap className="w-5 h-5" />
+                      Energia
+                    </h3>
+                    <div className="space-y-3">
+                      <div>
+                        <Label>Valor Médio Mensal (R$)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="Ex: 285.75"
+                          value={profileData.avg_energy_bill}
+                          onChange={(e) => setProfileData({...profileData, avg_energy_bill: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <Label>Consumo Médio Mensal (kWh)</Label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          placeholder="Ex: 350"
+                          value={profileData.avg_energy_consumption_kwh}
+                          onChange={(e) => setProfileData({...profileData, avg_energy_consumption_kwh: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <Label>Tarifa Calculada por kWh (R$)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={profileData.energy_tariff_per_kwh}
+                          readOnly
+                          className="bg-gray-100 cursor-not-allowed"
+                        />
+                        <p className="text-xs text-gray-600 mt-1">
+                          Baseada em CEMIG: R$ {PROVIDER_TARIFFS.CEMIG.toFixed(2)}/kWh
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="habits" className="space-y-4">
+                <Alert className="bg-green-50 border-green-200 mb-4">
+                  <Info className="h-4 w-4 text-green-600" />
+                  <AlertDescription className="text-green-800 text-sm">
+                    Seus hábitos são usados para calcular estimativas diárias e sugerir dicas personalizadas.
+                  </AlertDescription>
+                </Alert>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label>Tempo Médio de Banho (minutos)</Label>
+                    <Input
+                      type="number"
+                      placeholder="Ex: 10"
+                      value={profileData.avg_shower_minutes}
+                      onChange={(e) => setProfileData({...profileData, avg_shower_minutes: e.target.value})}
+                    />
+                    <p className="text-xs text-gray-600 mt-1">
+                      Recomendado: 5-8 minutos
+                    </p>
+                  </div>
+                  <div>
+                    <Label>Usos da Máquina de Lavar (por semana)</Label>
+                    <Input
+                      type="number"
+                      placeholder="Ex: 3"
+                      value={profileData.washing_machine_uses_per_week}
+                      onChange={(e) => setProfileData({...profileData, washing_machine_uses_per_week: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label>Horas de Ar Condicionado (por dia)</Label>
+                    <Input
+                      type="number"
+                      step="0.5"
+                      placeholder="Ex: 4"
+                      value={profileData.ac_hours_per_day}
+                      onChange={(e) => setProfileData({...profileData, ac_hours_per_day: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label>Tipo de Iluminação</Label>
+                    <Select
+                      value={profileData.lighting_type}
+                      onValueChange={(value) => setProfileData({...profileData, lighting_type: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="led">LED</SelectItem>
+                        <SelectItem value="fluorescente">Fluorescente</SelectItem>
+                        <SelectItem value="incandescente">Incandescente</SelectItem>
+                        <SelectItem value="misto">Misto</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-600 mt-1">
+                      LED é 80% mais econômico
+                    </p>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            <Button
+              onClick={() => saveProfileMutation.mutate(profileData)}
+              disabled={saveProfileMutation.isPending}
+              className="w-full mt-6 bg-gradient-to-r from-blue-500 via-cyan-500 to-purple-500 hover:from-blue-600 hover:via-cyan-600 hover:to-purple-600"
+            >
+              {saveProfileMutation.isPending ? (
+                <>Salvando...</>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Salvar Configurações
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}

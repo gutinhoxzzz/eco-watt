@@ -1,0 +1,55 @@
+{
+  "name": "Tip",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo da dica"
+    },
+    "content": {
+      "type": "string",
+      "description": "Conte\u00fado da dica"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "agua_cozinha",
+        "agua_banheiro",
+        "agua_lavanderia",
+        "energia_iluminacao",
+        "energia_eletronicos",
+        "energia_climatizacao",
+        "geral"
+      ],
+      "description": "Categoria da dica"
+    },
+    "potential_savings_percent": {
+      "type": "number",
+      "description": "Economia potencial em percentual"
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": [
+        "facil",
+        "medio",
+        "dificil"
+      ],
+      "description": "Dificuldade de implementa\u00e7\u00e3o"
+    },
+    "is_favorite": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se \u00e9 favorita do usu\u00e1rio"
+    },
+    "times_viewed": {
+      "type": "integer",
+      "default": 0,
+      "description": "Quantas vezes foi visualizada"
+    }
+  },
+  "required": [
+    "title",
+    "content",
+    "category"
+  ]
+}

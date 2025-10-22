@@ -1,0 +1,262 @@
+import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Droplets, Zap, CheckCircle } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { format } from "date-fns";
+import { motion } from "framer-motion";
+
+export default function InputBills() {
+  const [activeTab, setActiveTab] = useState("water");
+  const [waterData, setWaterData] = useState({
+    reference_month: format(new Date(), 'yyyy-MM-01'),
+    consumption_m3: '',
+    amount_paid: '',
+    household_size: '',
+    notes: ''
+  });
+  const [energyData, setEnergyData] = useState({
+    reference_month: format(new Date(), 'yyyy-MM-01'),
+    consumption_kwh: '',
+    amount_paid: '',
+    household_size: '',
+    notes: ''
+  });
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const queryClient = useQueryClient();
+
+  const createWaterBillMutation = useMutation({
+    mutationFn: (data) => {
+      const dataToSave = {
+        ...data,
+        consumption_m3: parseFloat(data.consumption_m3),
+        consumption_liters: parseFloat(data.consumption_m3) * 1000,
+        amount_paid: parseFloat(data.amount_paid),
+        price_per_m3: parseFloat(data.amount_paid) / parseFloat(data.consumption_m3),
+        household_size: parseInt(data.household_size) || 1
+      };
+      return base44.entities.WaterBill.create(dataToSave);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['waterBills'] });
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+      setWaterData({
+        reference_month: format(new Date(), 'yyyy-MM-01'),
+        consumption_m3: '',
+        amount_paid: '',
+        household_size: '',
+        notes: ''
+      });
+    },
+  });
+
+  const createEnergyBillMutation = useMutation({
+    mutationFn: (data) => {
+      const dataToSave = {
+        ...data,
+        consumption_kwh: parseFloat(data.consumption_kwh),
+        amount_paid: parseFloat(data.amount_paid),
+        price_per_kwh: parseFloat(data.amount_paid) / parseFloat(data.consumption_kwh),
+        co2_emissions: parseFloat(data.consumption_kwh) * 0.475,
+        household_size: parseInt(data.household_size) || 1
+      };
+      return base44.entities.EnergyBill.create(dataToSave);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['energyBills'] });
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+      setEnergyData({
+        reference_month: format(new Date(), 'yyyy-MM-01'),
+        consumption_kwh: '',
+        amount_paid: '',
+        household_size: '',
+        notes: ''
+      });
+    },
+  });
+
+  return (
+    <div className="p-4 md:p-8 bg-gradient-to-br from-blue-50 via-cyan-50/40 to-amber-50/30 min-h-screen">
+      <div className="max-w-3xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+            Registrar Contas
+          </h1>
+          <p className="text-gray-600">Insira os dados das suas contas de água e luz</p>
+        </div>
+
+        {showSuccess && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3"
+          >
+            <CheckCircle className="w-5 h-5 text-green-600" />
+            <p className="text-green-800 font-medium">Conta registrada com sucesso! +10 pontos 🎉</p>
+          </motion.div>
+        )}
+
+        <Card className="border-none shadow-xl">
+          <CardHeader className="bg-gradient-to-r from-blue-500 via-cyan-500 to-amber-500 text-white">
+            <CardTitle className="text-2xl">Registro de Consumo</CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="water" className="flex items-center gap-2">
+                  <Droplets className="w-4 h-4" />
+                  Água
+                </TabsTrigger>
+                <TabsTrigger value="energy" className="flex items-center gap-2">
+                  <Zap className="w-4 h-4" />
+                  Luz
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="water" className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="water_month">Mês de Referência</Label>
+                    <Input
+                      id="water_month"
+                      type="month"
+                      value={waterData.reference_month}
+                      onChange={(e) => setWaterData({...waterData, reference_month: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="water_consumption">Consumo (m³)</Label>
+                    <Input
+                      id="water_consumption"
+                      type="number"
+                      step="0.1"
+                      placeholder="Ex: 15.5"
+                      value={waterData.consumption_m3}
+                      onChange={(e) => setWaterData({...waterData, consumption_m3: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="water_amount">Valor Pago (R$)</Label>
+                    <Input
+                      id="water_amount"
+                      type="number"
+                      step="0.01"
+                      placeholder="Ex: 95.50"
+                      value={waterData.amount_paid}
+                      onChange={(e) => setWaterData({...waterData, amount_paid: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="water_household">Pessoas na Casa</Label>
+                    <Input
+                      id="water_household"
+                      type="number"
+                      placeholder="Ex: 4"
+                      value={waterData.household_size}
+                      onChange={(e) => setWaterData({...waterData, household_size: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="water_notes">Observações (opcional)</Label>
+                  <Textarea
+                    id="water_notes"
+                    placeholder="Ex: Houve vazamento no banheiro"
+                    value={waterData.notes}
+                    onChange={(e) => setWaterData({...waterData, notes: e.target.value})}
+                    className="h-20"
+                  />
+                </div>
+                <Button
+                  onClick={() => createWaterBillMutation.mutate(waterData)}
+                  disabled={!waterData.consumption_m3 || !waterData.amount_paid}
+                  className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
+                >
+                  Registrar Conta de Água
+                </Button>
+              </TabsContent>
+
+              <TabsContent value="energy" className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="energy_month">Mês de Referência</Label>
+                    <Input
+                      id="energy_month"
+                      type="month"
+                      value={energyData.reference_month}
+                      onChange={(e) => setEnergyData({...energyData, reference_month: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="energy_consumption">Consumo (kWh)</Label>
+                    <Input
+                      id="energy_consumption"
+                      type="number"
+                      step="0.1"
+                      placeholder="Ex: 350"
+                      value={energyData.consumption_kwh}
+                      onChange={(e) => setEnergyData({...energyData, consumption_kwh: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="energy_amount">Valor Pago (R$)</Label>
+                    <Input
+                      id="energy_amount"
+                      type="number"
+                      step="0.01"
+                      placeholder="Ex: 285.75"
+                      value={energyData.amount_paid}
+                      onChange={(e) => setEnergyData({...energyData, amount_paid: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="energy_household">Pessoas na Casa</Label>
+                    <Input
+                      id="energy_household"
+                      type="number"
+                      placeholder="Ex: 4"
+                      value={energyData.household_size}
+                      onChange={(e) => setEnergyData({...energyData, household_size: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="energy_notes">Observações (opcional)</Label>
+                  <Textarea
+                    id="energy_notes"
+                    placeholder="Ex: Ar condicionado usado mais que o normal"
+                    value={energyData.notes}
+                    onChange={(e) => setEnergyData({...energyData, notes: e.target.value})}
+                    className="h-20"
+                  />
+                </div>
+                <Button
+                  onClick={() => createEnergyBillMutation.mutate(energyData)}
+                  disabled={!energyData.consumption_kwh || !energyData.amount_paid}
+                  className="w-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600"
+                >
+                  Registrar Conta de Luz
+                </Button>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+
+        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+          <p className="text-sm text-blue-800">
+            💡 <strong>Dica:</strong> Registre suas contas mensalmente para acompanhar seu progresso e ganhar pontos!
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}

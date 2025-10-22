@@ -1,0 +1,70 @@
+{
+  "name": "Challenge",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Nome do desafio"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o detalhada"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "agua",
+        "energia",
+        "combinado"
+      ],
+      "description": "Tipo de desafio"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data de in\u00edcio"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data final"
+    },
+    "target_value": {
+      "type": "number",
+      "description": "Meta num\u00e9rica do desafio"
+    },
+    "current_progress": {
+      "type": "number",
+      "default": 0,
+      "description": "Progresso atual"
+    },
+    "reward_points": {
+      "type": "integer",
+      "description": "Pontos de recompensa"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ativo",
+        "concluido",
+        "expirado"
+      ],
+      "default": "ativo",
+      "description": "Status do desafio"
+    },
+    "participants": {
+      "type": "integer",
+      "default": 0,
+      "description": "N\u00famero de participantes"
+    }
+  },
+  "required": [
+    "title",
+    "description",
+    "type",
+    "start_date",
+    "end_date",
+    "target_value",
+    "reward_points"
+  ]
+}

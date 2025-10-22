@@ -1,0 +1,56 @@
+{
+  "name": "EducationalContent",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo do conte\u00fado"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o breve"
+    },
+    "content": {
+      "type": "string",
+      "description": "Conte\u00fado completo"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "agua",
+        "energia",
+        "geral",
+        "economia",
+        "sustentabilidade"
+      ],
+      "description": "Categoria"
+    },
+    "duration_minutes": {
+      "type": "integer",
+      "description": "Dura\u00e7\u00e3o estimada em minutos"
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": [
+        "iniciante",
+        "intermediario",
+        "avancado"
+      ],
+      "description": "N\u00edvel de dificuldade"
+    },
+    "completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se foi completado pelo usu\u00e1rio"
+    },
+    "experience_points": {
+      "type": "integer",
+      "description": "Pontos de experi\u00eancia ao completar"
+    }
+  },
+  "required": [
+    "title",
+    "content",
+    "category"
+  ]
+}

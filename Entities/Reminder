@@ -1,0 +1,51 @@
+{
+  "name": "Reminder",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo do lembrete"
+    },
+    "message": {
+      "type": "string",
+      "description": "Mensagem do lembrete"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "registro_conta",
+        "verificacao",
+        "manutencao",
+        "meta",
+        "dica"
+      ],
+      "description": "Tipo de lembrete"
+    },
+    "scheduled_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data agendada"
+    },
+    "is_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se foi enviado"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "baixa",
+        "media",
+        "alta"
+      ],
+      "default": "media",
+      "description": "Prioridade"
+    }
+  },
+  "required": [
+    "title",
+    "message",
+    "type",
+    "scheduled_date"
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "name": "Achievement",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Nome da conquista"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o da conquista"
+    },
+    "icon": {
+      "type": "string",
+      "description": "Nome do \u00edcone"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "agua",
+        "energia",
+        "geral",
+        "desafio"
+      ],
+      "description": "Categoria da conquista"
+    },
+    "points": {
+      "type": "integer",
+      "description": "Pontos que a conquista vale"
+    },
+    "unlocked": {
+      "type": "boolean",
+      "default": false,
+      "description": "Se foi desbloqueada"
+    },
+    "unlocked_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data que foi desbloqueada"
+    },
+    "requirement": {
+      "type": "string",
+      "description": "Requisito para desbloquear"
+    }
+  },
+  "required": [
+    "title",
+    "description",
+    "category",
+    "points"
+  ]
+}

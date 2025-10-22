@@ -1,0 +1,44 @@
+{
+  "name": "WaterBill",
+  "type": "object",
+  "properties": {
+    "reference_month": {
+      "type": "string",
+      "format": "date",
+      "description": "M\u00eas de refer\u00eancia da conta"
+    },
+    "consumption_m3": {
+      "type": "number",
+      "description": "Consumo em metros c\u00fabicos"
+    },
+    "consumption_liters": {
+      "type": "number",
+      "description": "Consumo em litros (m3 * 1000)"
+    },
+    "amount_paid": {
+      "type": "number",
+      "description": "Valor pago em reais"
+    },
+    "price_per_m3": {
+      "type": "number",
+      "description": "Pre\u00e7o por m\u00b3"
+    },
+    "previous_consumption": {
+      "type": "number",
+      "description": "Consumo do m\u00eas anterior para compara\u00e7\u00e3o"
+    },
+    "household_size": {
+      "type": "integer",
+      "description": "N\u00famero de pessoas na casa"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observa\u00e7\u00f5es sobre o consumo"
+    }
+  },
+  "required": [
+    "reference_month",
+    "consumption_m3",
+    "amount_paid"
+  ]
+}

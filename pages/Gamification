@@ -1,0 +1,232 @@
+import React from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Trophy, Star, Target, Award, Lock } from "lucide-react";
+import { motion } from "framer-motion";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+export default function Gamification() {
+  const { data: achievements = [] } = useQuery({
+    queryKey: ['achievements'],
+    queryFn: () => base44.entities.Achievement.list(),
+  });
+
+  const { data: challenges = [] } = useQuery({
+    queryKey: ['challenges'],
+    queryFn: () => base44.entities.Challenge.list('-created_date'),
+  });
+
+  const totalPoints = achievements
+    .filter(a => a.unlocked)
+    .reduce((sum, a) => sum + (a.points || 0), 0);
+
+  const unlockedAchievements = achievements.filter(a => a.unlocked);
+  const lockedAchievements = achievements.filter(a => !a.unlocked);
+  const activeChallenges = challenges.filter(c => c.status === 'ativo');
+
+  return (
+    <div className="p-4 md:p-8 bg-gradient-to-br from-blue-50 via-cyan-50/40 to-amber-50/30 min-h-screen">
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+            Conquistas & Desafios
+          </h1>
+          <p className="text-gray-600">Ganhe pontos e desbloqueie conquistas economizando</p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Card className="border-none shadow-lg bg-gradient-to-br from-amber-50 to-yellow-50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Star className="w-5 h-5 text-amber-600 fill-amber-600" />
+                  Pontos Totais
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-4xl font-bold bg-gradient-to-r from-amber-600 to-yellow-600 bg-clip-text text-transparent">
+                  {totalPoints}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Card className="border-none shadow-lg bg-gradient-to-br from-green-50 to-emerald-50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-green-600" />
+                  Conquistas
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-4xl font-bold text-green-600">
+                  {unlockedAchievements.length}/{achievements.length}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Card className="border-none shadow-lg bg-gradient-to-br from-blue-50 to-cyan-50">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Target className="w-5 h-5 text-blue-600" />
+                  Desafios Ativos
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-4xl font-bold text-blue-600">
+                  {activeChallenges.length}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-6 mb-8">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Target className="w-6 h-6 text-blue-600" />
+              Desafios Ativos
+            </h2>
+            <div className="space-y-4">
+              {activeChallenges.map((challenge) => (
+                <motion.div
+                  key={challenge.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                >
+                  <Card className="border-none shadow-lg overflow-hidden">
+                    <div className="relative">
+                      <div className={`absolute top-0 right-0 w-40 h-40 rounded-full blur-3xl opacity-10 ${
+                        challenge.type === 'agua' 
+                          ? 'bg-blue-500' 
+                          : challenge.type === 'energia' 
+                          ? 'bg-amber-500' 
+                          : 'bg-gradient-to-r from-blue-500 to-amber-500'
+                      }`}></div>
+                      
+                      <CardContent className="p-6 relative z-10">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h3 className="font-bold text-lg text-gray-900">{challenge.title}</h3>
+                            <p className="text-sm text-gray-600 mt-1">{challenge.description}</p>
+                          </div>
+                          <Badge className="bg-amber-100 text-amber-700 border-amber-300">
+                            {challenge.reward_points} pts
+                          </Badge>
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Progresso</span>
+                            <span className="font-semibold text-gray-900">
+                              {challenge.current_progress}%
+                            </span>
+                          </div>
+                          <Progress value={challenge.current_progress} className="h-2" />
+                          
+                          <div className="flex justify-between text-xs text-gray-500 mt-2">
+                            <span>Até {format(new Date(challenge.end_date), "dd/MM/yyyy", { locale: ptBR })}</span>
+                            <span>{challenge.participants} participantes</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </div>
+                  </Card>
+                </motion.div>
+              ))}
+              
+              {activeChallenges.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <Target className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>Nenhum desafio ativo no momento</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Trophy className="w-6 h-6 text-green-600" />
+              Minhas Conquistas
+            </h2>
+            <div className="space-y-3">
+              {unlockedAchievements.map((achievement) => (
+                <motion.div
+                  key={achievement.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                >
+                  <Card className="border-none shadow-md bg-gradient-to-r from-green-50 to-emerald-50">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-4">
+                        <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl">
+                          <Award className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-bold text-gray-900">{achievement.title}</h4>
+                          <p className="text-sm text-gray-600">{achievement.description}</p>
+                          {achievement.unlocked_date && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              Desbloqueada em {format(new Date(achievement.unlocked_date), "dd/MM/yyyy", { locale: ptBR })}
+                            </p>
+                          )}
+                        </div>
+                        <Badge className="bg-amber-100 text-amber-700 border-amber-300">
+                          {achievement.points} pts
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+
+              {lockedAchievements.length > 0 && (
+                <>
+                  <h3 className="text-lg font-semibold text-gray-700 mt-6 mb-3">
+                    Conquistas Bloqueadas
+                  </h3>
+                  {lockedAchievements.map((achievement) => (
+                    <Card key={achievement.id} className="border-none shadow-md bg-gray-50 opacity-60">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-4">
+                          <div className="p-3 bg-gray-300 rounded-xl">
+                            <Lock className="w-6 h-6 text-gray-600" />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-bold text-gray-700">{achievement.title}</h4>
+                            <p className="text-sm text-gray-600">{achievement.requirement}</p>
+                          </div>
+                          <Badge variant="outline" className="text-gray-600">
+                            {achievement.points} pts
+                          </Badge>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

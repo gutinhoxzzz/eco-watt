@@ -1,0 +1,98 @@
+{
+  "name": "UserProfile",
+  "type": "object",
+  "properties": {
+    "property_type": {
+      "type": "string",
+      "enum": [
+        "casa",
+        "apartamento",
+        "escritorio",
+        "comercio"
+      ],
+      "description": "Tipo de im\u00f3vel"
+    },
+    "household_size": {
+      "type": "integer",
+      "description": "N\u00famero de moradores/ocupantes"
+    },
+    "address_city": {
+      "type": "string",
+      "description": "Cidade"
+    },
+    "address_state": {
+      "type": "string",
+      "description": "Estado"
+    },
+    "water_provider": {
+      "type": "string",
+      "description": "Concession\u00e1ria de \u00e1gua"
+    },
+    "energy_provider": {
+      "type": "string",
+      "description": "Concession\u00e1ria de energia"
+    },
+    "avg_water_bill": {
+      "type": "number",
+      "description": "Valor m\u00e9dio mensal da conta de \u00e1gua (R$)"
+    },
+    "avg_energy_bill": {
+      "type": "number",
+      "description": "Valor m\u00e9dio mensal da conta de luz (R$)"
+    },
+    "avg_water_consumption_m3": {
+      "type": "number",
+      "description": "Consumo m\u00e9dio mensal de \u00e1gua (m\u00b3)"
+    },
+    "avg_energy_consumption_kwh": {
+      "type": "number",
+      "description": "Consumo m\u00e9dio mensal de energia (kWh)"
+    },
+    "water_tariff_per_m3": {
+      "type": "number",
+      "description": "Tarifa de \u00e1gua por m\u00b3"
+    },
+    "energy_tariff_per_kwh": {
+      "type": "number",
+      "description": "Tarifa de energia por kWh"
+    },
+    "avg_shower_minutes": {
+      "type": "integer",
+      "description": "Tempo m\u00e9dio de banho (minutos)"
+    },
+    "washing_machine_uses_per_week": {
+      "type": "integer",
+      "description": "Usos da m\u00e1quina de lavar por semana"
+    },
+    "ac_hours_per_day": {
+      "type": "number",
+      "description": "Horas de uso de ar condicionado por dia"
+    },
+    "lighting_type": {
+      "type": "string",
+      "enum": [
+        "led",
+        "fluorescente",
+        "incandescente",
+        "misto"
+      ],
+      "description": "Tipo predominante de ilumina\u00e7\u00e3o"
+    },
+    "profile_completion": {
+      "type": "integer",
+      "default": 0,
+      "description": "Percentual de completude do perfil"
+    },
+    "current_level": {
+      "type": "integer",
+      "default": 1,
+      "description": "N\u00edvel atual na jornada"
+    },
+    "total_experience": {
+      "type": "integer",
+      "default": 0,
+      "description": "Experi\u00eancia total acumulada"
+    }
+  },
+  "required": []
+}

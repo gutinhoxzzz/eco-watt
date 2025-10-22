@@ -1,0 +1,182 @@
+import React, { useState } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { 
+  Lightbulb, 
+  Droplets, 
+  Zap, 
+  Search,
+  Heart,
+  TrendingUp
+} from "lucide-react";
+import { motion } from "framer-motion";
+
+const categoryIcons = {
+  agua_cozinha: Droplets,
+  agua_banheiro: Droplets,
+  agua_lavanderia: Droplets,
+  energia_iluminacao: Zap,
+  energia_eletronicos: Zap,
+  energia_climatizacao: Zap,
+  geral: Lightbulb
+};
+
+const categoryColors = {
+  agua_cozinha: 'from-blue-500 to-cyan-500',
+  agua_banheiro: 'from-blue-600 to-blue-400',
+  agua_lavanderia: 'from-cyan-500 to-teal-500',
+  energia_iluminacao: 'from-amber-500 to-yellow-500',
+  energia_eletronicos: 'from-orange-500 to-amber-500',
+  energia_climatizacao: 'from-yellow-500 to-orange-400',
+  geral: 'from-purple-500 to-indigo-500'
+};
+
+const difficultyColors = {
+  facil: 'bg-green-100 text-green-700 border-green-300',
+  medio: 'bg-yellow-100 text-yellow-700 border-yellow-300',
+  dificil: 'bg-red-100 text-red-700 border-red-300'
+};
+
+export default function Tips() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterCategory, setFilterCategory] = useState("all");
+  
+  const queryClient = useQueryClient();
+
+  const { data: tips = [] } = useQuery({
+    queryKey: ['tips'],
+    queryFn: () => base44.entities.Tip.list(),
+  });
+
+  const toggleFavoriteMutation = useMutation({
+    mutationFn: ({ id, isFavorite }) => 
+      base44.entities.Tip.update(id, { is_favorite: !isFavorite }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tips'] });
+    },
+  });
+
+  const filteredTips = tips.filter(tip => {
+    const matchesSearch = tip.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         tip.content.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFilter = filterCategory === "all" || tip.category === filterCategory;
+    return matchesSearch && matchesFilter;
+  });
+
+  const categories = [
+    { value: "all", label: "Todas" },
+    { value: "agua_cozinha", label: "Água - Cozinha" },
+    { value: "agua_banheiro", label: "Água - Banheiro" },
+    { value: "agua_lavanderia", label: "Água - Lavanderia" },
+    { value: "energia_iluminacao", label: "Energia - Iluminação" },
+    { value: "energia_eletronicos", label: "Energia - Eletrônicos" },
+    { value: "energia_climatizacao", label: "Energia - Climatização" },
+  ];
+
+  return (
+    <div className="p-4 md:p-8 bg-gradient-to-br from-blue-50 via-cyan-50/40 to-amber-50/30 min-h-screen">
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+            Biblioteca de Dicas
+          </h1>
+          <p className="text-gray-600">Aprenda a economizar água e energia com dicas práticas</p>
+        </div>
+
+        <div className="mb-6 flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Input
+              placeholder="Buscar dicas..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 bg-white"
+            />
+          </div>
+          
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            {categories.map(cat => (
+              <Button
+                key={cat.value}
+                variant={filterCategory === cat.value ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilterCategory(cat.value)}
+                className={filterCategory === cat.value ? "bg-gradient-to-r from-blue-500 to-amber-500" : ""}
+              >
+                {cat.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          {filteredTips.map((tip) => {
+            const Icon = categoryIcons[tip.category] || Lightbulb;
+            return (
+              <motion.div
+                key={tip.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Card className="border-none shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
+                  <div className="relative">
+                    <div className={`absolute top-0 right-0 w-40 h-40 rounded-full blur-3xl opacity-20 bg-gradient-to-br ${categoryColors[tip.category]}`}></div>
+                    
+                    <CardContent className="p-6 relative z-10">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className={`p-3 rounded-xl bg-gradient-to-br ${categoryColors[tip.category]}`}>
+                          <Icon className="w-5 h-5 text-white" />
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => toggleFavoriteMutation.mutate({ 
+                            id: tip.id, 
+                            isFavorite: tip.is_favorite 
+                          })}
+                          className="hover:bg-transparent"
+                        >
+                          <Heart 
+                            className={`w-5 h-5 ${tip.is_favorite ? 'fill-red-500 text-red-500' : 'text-gray-400'}`}
+                          />
+                        </Button>
+                      </div>
+
+                      <h3 className="font-bold text-lg text-gray-900 mb-2">{tip.title}</h3>
+                      <p className="text-gray-600 text-sm mb-4">{tip.content}</p>
+
+                      <div className="flex flex-wrap gap-2">
+                        {tip.difficulty && (
+                          <Badge className={`${difficultyColors[tip.difficulty]} border`}>
+                            {tip.difficulty.charAt(0).toUpperCase() + tip.difficulty.slice(1)}
+                          </Badge>
+                        )}
+                        {tip.potential_savings_percent && (
+                          <Badge className="bg-green-100 text-green-700 border-green-300 flex items-center gap-1">
+                            <TrendingUp className="w-3 h-3" />
+                            Até {tip.potential_savings_percent}% de economia
+                          </Badge>
+                        )}
+                      </div>
+                    </CardContent>
+                  </div>
+                </Card>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {filteredTips.length === 0 && (
+          <div className="text-center py-12">
+            <Lightbulb className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+            <p className="text-gray-500 text-lg">Nenhuma dica encontrada</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

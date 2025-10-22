@@ -1,0 +1,225 @@
+
+import React from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
+import { Droplets, Zap, DollarSign, TrendingDown } from "lucide-react";
+import { format, subMonths } from "date-fns";
+import ConsumptionCard from "../components/dashboard/ConsumptionCard";
+import ImpactMetrics from "../components/dashboard/ImpactMetrics";
+import AIInsights from "../components/dashboard/AIInsights";
+import DailyEstimator from "../components/dashboard/DailyEstimator";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { motion } from "framer-motion";
+
+export default function Dashboard() {
+  const currentMonth = format(new Date(), 'yyyy-MM-01');
+  const lastMonth = format(subMonths(new Date(), 1), 'yyyy-MM-01');
+
+  const { data: waterBills = [] } = useQuery({
+    queryKey: ['waterBills'],
+    queryFn: () => base44.entities.WaterBill.list('-reference_month'),
+  });
+
+  const { data: energyBills = [] } = useQuery({
+    queryKey: ['energyBills'],
+    queryFn: () => base44.entities.EnergyBill.list('-reference_month'),
+  });
+
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['userProfiles'],
+    queryFn: () => base44.entities.UserProfile.list(),
+  });
+
+  const currentProfile = profiles[0] || {};
+
+  const currentWater = waterBills[0] || {};
+  const previousWater = waterBills[1] || {};
+  const currentEnergy = energyBills[0] || {};
+  const previousEnergy = energyBills[1] || {};
+
+  // Cálculos de economia
+  const waterSaved = previousWater.consumption_liters 
+    ? Math.max(0, previousWater.consumption_liters - (currentWater.consumption_liters || 0))
+    : 0;
+  
+  const energySaved = previousEnergy.consumption_kwh
+    ? Math.max(0, previousEnergy.consumption_kwh - (currentEnergy.consumption_kwh || 0))
+    : 0;
+
+  const co2Saved = (energySaved * 0.475).toFixed(1); // 0.475 kg CO2 por kWh
+
+  const moneySaved = 
+    (previousWater.amount_paid - (currentWater.amount_paid || 0)) +
+    (previousEnergy.amount_paid - (currentEnergy.amount_paid || 0));
+
+  // Gráfico histórico
+  const chartData = [...waterBills].reverse().slice(0, 6).map((water, index) => {
+    const energy = [...energyBills].reverse().slice(0, 6)[index] || {};
+    return {
+      month: format(new Date(water.reference_month), 'MMM'),
+      agua: water.consumption_m3 || 0,
+      energia: energy.consumption_kwh || 0,
+    };
+  });
+
+  const aiInsights = [
+    {
+      type: 'savings',
+      title: 'Parabéns pela economia!',
+      description: `Você reduziu ${waterSaved.toFixed(0)}L de água e ${energySaved.toFixed(1)}kWh de energia este mês.`,
+      savings: { money: moneySaved.toFixed(2), water: waterSaved.toFixed(0), energy: energySaved.toFixed(1) }
+    },
+    {
+      type: 'tip',
+      title: 'Dica: Horário de pico',
+      description: 'Use aparelhos de alto consumo após 22h para economizar até 30% na conta de luz.',
+      savings: { money: '45.00', energy: '25' }
+    },
+    {
+      type: 'analysis',
+      title: 'Padrão identificado',
+      description: 'Seu consumo de água está acima da média. Verifique vazamentos e reduza o tempo de banho.',
+      savings: { money: '30.00', water: '2000' }
+    }
+  ];
+
+  return (
+    <div className="p-4 md:p-8 bg-gradient-to-br from-blue-50 via-cyan-50/40 to-amber-50/30 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+            Painel de Controle
+          </h1>
+          <p className="text-gray-600">Acompanhe seu consumo e economia em tempo real</p>
+        </div>
+
+        <div className="mb-8">
+          <DailyEstimator 
+            profile={currentProfile}
+            waterBills={waterBills}
+            energyBills={energyBills}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <ConsumptionCard
+            title="Consumo de Água"
+            currentValue={currentWater.consumption_m3?.toFixed(1) || '0.0'}
+            currentUnit="m³"
+            previousValue={previousWater.consumption_m3}
+            cost={currentWater.amount_paid || 0}
+            icon={Droplets}
+            gradient="bg-gradient-to-br from-blue-500 to-cyan-500"
+            type="water"
+          />
+          <ConsumptionCard
+            title="Consumo de Energia"
+            currentValue={currentEnergy.consumption_kwh?.toFixed(0) || '0'}
+            currentUnit="kWh"
+            previousValue={previousEnergy.consumption_kwh}
+            cost={currentEnergy.amount_paid || 0}
+            icon={Zap}
+            gradient="bg-gradient-to-br from-amber-500 to-yellow-500"
+            type="energy"
+          />
+          <ConsumptionCard
+            title="Gasto Total"
+            currentValue={((currentWater.amount_paid || 0) + (currentEnergy.amount_paid || 0)).toFixed(2)}
+            currentUnit="R$"
+            previousValue={(previousWater.amount_paid || 0) + (previousEnergy.amount_paid || 0)}
+            cost={(currentWater.amount_paid || 0) + (currentEnergy.amount_paid || 0)}
+            icon={DollarSign}
+            gradient="bg-gradient-to-br from-purple-500 to-pink-500"
+            type="cost"
+          />
+          <ConsumptionCard
+            title="Economia Mensal"
+            currentValue={Math.max(0, moneySaved).toFixed(2)}
+            currentUnit="R$"
+            previousValue={0}
+            cost={Math.max(0, moneySaved)}
+            icon={TrendingDown}
+            gradient="bg-gradient-to-br from-green-500 to-emerald-500"
+            type="savings"
+          />
+        </div>
+
+        <div className="mb-8">
+          <ImpactMetrics 
+            waterSaved={waterSaved}
+            co2Saved={parseFloat(co2Saved)}
+          />
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Card className="border-none shadow-lg">
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold text-gray-900">
+                    Histórico de Consumo (Últimos 6 Meses)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={chartData}>
+                      <defs>
+                        <linearGradient id="colorWater" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0.1}/>
+                        </linearGradient>
+                        <linearGradient id="colorEnergy" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.1}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis dataKey="month" stroke="#6b7280" />
+                      <YAxis stroke="#6b7280" />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'white', 
+                          border: 'none', 
+                          borderRadius: '12px',
+                          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                        }}
+                      />
+                      <Legend />
+                      <Area 
+                        type="monotone" 
+                        dataKey="agua" 
+                        stroke="#0ea5e9" 
+                        strokeWidth={2}
+                        fillOpacity={1} 
+                        fill="url(#colorWater)"
+                        name="Água (m³)"
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="energia" 
+                        stroke="#f59e0b" 
+                        strokeWidth={2}
+                        fillOpacity={1} 
+                        fill="url(#colorEnergy)"
+                        name="Energia (kWh)"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
+
+          <div>
+            <AIInsights insights={aiInsights} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

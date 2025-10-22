@@ -1,0 +1,77 @@
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Leaf, Droplet, TreePine } from "lucide-react";
+import { motion } from "framer-motion";
+
+export default function ImpactMetrics({ waterSaved, co2Saved }) {
+  const treesEquivalent = (co2Saved / 21).toFixed(1); // 1 árvore absorve ~21kg CO2/ano
+  const bottlesEquivalent = Math.floor(waterSaved / 0.5); // garrafas de 500ml
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.2 }}
+    >
+      <Card className="border-none shadow-lg bg-gradient-to-br from-green-50 to-emerald-50">
+        <CardHeader>
+          <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <Leaf className="w-5 h-5 text-green-600" />
+            Seu Impacto Ambiental
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white rounded-xl p-4 shadow-sm">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Droplet className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Água Economizada</p>
+                  <p className="text-2xl font-bold text-blue-600">{waterSaved}</p>
+                  <p className="text-xs text-gray-600">litros</p>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                = {bottlesEquivalent} garrafas de 500ml
+              </p>
+            </div>
+
+            <div className="bg-white rounded-xl p-4 shadow-sm">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <Leaf className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">CO₂ Evitado</p>
+                  <p className="text-2xl font-bold text-green-600">{co2Saved}</p>
+                  <p className="text-xs text-gray-600">kg</p>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                redução de emissões
+              </p>
+            </div>
+
+            <div className="bg-white rounded-xl p-4 shadow-sm">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-emerald-100 rounded-lg">
+                  <TreePine className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Equivalente a</p>
+                  <p className="text-2xl font-bold text-emerald-600">{treesEquivalent}</p>
+                  <p className="text-xs text-gray-600">árvores/ano</p>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                absorvendo CO₂
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}

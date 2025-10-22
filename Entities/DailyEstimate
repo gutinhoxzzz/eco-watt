@@ -1,0 +1,52 @@
+{
+  "name": "DailyEstimate",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data da estimativa"
+    },
+    "estimated_water_liters": {
+      "type": "number",
+      "description": "\u00c1gua estimada em litros"
+    },
+    "estimated_energy_kwh": {
+      "type": "number",
+      "description": "Energia estimada em kWh"
+    },
+    "actual_water_liters": {
+      "type": "number",
+      "description": "\u00c1gua real reportada"
+    },
+    "actual_energy_kwh": {
+      "type": "number",
+      "description": "Energia real reportada"
+    },
+    "water_status": {
+      "type": "string",
+      "enum": [
+        "abaixo",
+        "normal",
+        "acima"
+      ],
+      "description": "Status do consumo de \u00e1gua"
+    },
+    "energy_status": {
+      "type": "string",
+      "enum": [
+        "abaixo",
+        "normal",
+        "acima"
+      ],
+      "description": "Status do consumo de energia"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notas sobre o dia"
+    }
+  },
+  "required": [
+    "date"
+  ]
+}
